@@ -69,8 +69,13 @@ export default function CourseDetails(props) {
             <h1>Цена курса</h1>
             <p>{course.price || "Не указана"} бел.руб.</p>
           </div>
-          <Button text="записаться" link={`/order?course_id=${course.id}`} />
+          <Button text="записаться" link={`/order/${course.id}`} />
         </div>
+        <Button
+          text="оставить отзыв"
+          link={`/courses/${course.id}/testimonial`}
+          className="secondary-button"
+        />
       </div>
     </>
   );

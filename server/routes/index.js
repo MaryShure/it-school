@@ -1,6 +1,7 @@
 import express from "express";
 import Application from "../models/Application.js";
 import { Course, Instructor, Category } from "../models/index.js";
+import Testimonial from "../models/Testimonial.js";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import { Op } from "sequelize";
@@ -11,16 +12,24 @@ const router = express.Router();
 // Роут для сохранения заявки
 router.post("/apply", async (req, res) => {
   try {
-    console.log("Получены данные:", req.body);
+    // Преобразуем course_name в course_id если нужно
+    const applicationData = {
+      ...req.body,
+      course_name: req.body.course_name || req.body.course_id,
+    };
 
-    // Создаем запись в БД
-    const application = await Application.create(req.body);
-    console.log("Запись успешно создана:", application.toJSON());
+    const application = await Application.create(applicationData);
 
-    res.json(application);
+    res.json({
+      success: true,
+      id: application.id,
+      data: application,
+    });
   } catch (error) {
-    console.error("Ошибка при сохранении:", error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
@@ -419,6 +428,223 @@ router.get("/instructors", async (req, res) => {
       success: true,
       data: instructors,
     });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// POST /api/testimonials - Создание нового отзыва
+router.post("/testimonials", async (req, res) => {
+  try {
+    console.log("Получен запрос на создание отзыва:", req.body);
+
+    const {
+      surname,
+      name,
+      patronym,
+      birth_date,
+      telephone,
+      email,
+      course_id,
+      comment,
+      rating,
+    } = req.body;
+
+    // Проверка обязательных полей
+    if (
+      !surname ||
+      !name ||
+      !telephone ||
+      !email ||
+      !course_id ||
+      !comment ||
+      !rating
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: "Все обязательные поля должны быть заполнены",
+      });
+    }
+
+    // Поиск существующей заявки пользователя на курс
+    const existingApplication = await Application.findOne({
+      where: {
+        surname,
+        name,
+        telephone,
+        email,
+        course_name: course_id.toString(),
+      },
+    });
+
+    let application;
+    if (existingApplication) {
+      application = existingApplication;
+    } else {
+      // Создание новой заявки
+      application = await Application.create({
+        surname,
+        name,
+        patronym,
+        birth_date,
+        telephone,
+        email,
+        course_name: course_id.toString(),
+      });
+    }
+
+    // Проверка, не оставлял ли пользователь уже отзыв на этот курс
+    const existingTestimonial = await Testimonial.findOne({
+      where: {
+        application_id: application.id,
+        course_id,
+      },
+    });
+
+    if (existingTestimonial) {
+      return res.status(400).json({
+        success: false,
+        error: "Вы уже оставляли отзыв на этот курс",
+      });
+    }
+
+    // Проверка существования курса
+    const course = await Course.findByPk(course_id);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        error: "Курс не найден",
+      });
+    }
+
+    // Создание отзыва
+    const testimonial = await Testimonial.create({
+      application_id: application.id,
+      course_id,
+      comment,
+      rating: parseInt(rating),
+      is_approved: false,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        testimonial,
+        application: {
+          name: application.name,
+          surname: application.surname,
+        },
+        course: {
+          title: course.title,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Ошибка создания отзыва:", error);
+    res.status(500).json({
+      success: false,
+      error: "Внутренняя ошибка сервера",
+      details: error.message,
+    });
+  }
+});
+
+// GET /api/testimonials/approved - Получение одобренных отзывов
+router.get("/testimonials/approved", async (req, res) => {
+  try {
+    const testimonials = await Testimonial.findAll({
+      where: { is_approved: true },
+      include: [
+        {
+          model: Application,
+          attributes: ["name", "surname"],
+        },
+        {
+          model: Course,
+          attributes: ["title"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+      limit: 10,
+    });
+
+    res.json({
+      success: true,
+      data: testimonials.map((t) => ({
+        id: t.id,
+        comment: t.comment,
+        rating: t.rating,
+        created_at: t.created_at,
+        user: {
+          name: t.application.name,
+          surname: t.application.surname,
+        },
+        course: {
+          title: t.course.title,
+        },
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// GET /api/admin/testimonials - Получение отзывов для модерации
+router.get("/admin/testimonials", async (req, res) => {
+  try {
+    const testimonials = await Testimonial.findAll({
+      where: { is_approved: false },
+      include: [
+        {
+          model: Course,
+          as: "course",
+          attributes: ["title"],
+        },
+        {
+          model: Application,
+          as: "application",
+          attributes: ["name", "surname"],
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      data: testimonials,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// PATCH /api/admin/testimonials/:id - Модерация отзыва
+router.patch("/admin/testimonials/:id", async (req, res) => {
+  try {
+    const [updated] = await Testimonial.update(
+      { is_approved: req.body.approve },
+      { where: { id: req.params.id } }
+    );
+
+    if (updated) {
+      res.json({
+        success: true,
+        message: "Отзыв успешно обновлен",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: "Отзыв не найден",
+      });
+    }
   } catch (error) {
     res.status(500).json({
       success: false,

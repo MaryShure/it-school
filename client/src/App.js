@@ -21,6 +21,7 @@ import OrderForm from "./components/Order/OrderForm";
 import Error from "./components/Error";
 import CoursesList from "./components/PageCurses/CoursesList";
 import CourseDetails from "./components/PageCurses/CourseDetails";
+import TestimonialForm from "./components/TestimonialForm";
 
 import BlockOneDecorator from "./components/back_blocks_img/BlockOneDecorator";
 import BlockTwoDecorator from "./components/back_blocks_img/BlockTwoDecorator";
@@ -136,7 +137,22 @@ function App() {
           }
         />
         <Route
-          path="/order"
+          path="/order/:courseId"
+          element={
+            <div className="wrapper">
+              <Header
+                items={["Главная", "О платформе", "Наш блог", "Направления"]}
+              />
+              <MainBlock ind={1} noMargin={true}>
+                <OrderFormBlockDecorator />
+                <OrderForm />
+              </MainBlock>
+              <Footer />
+            </div>
+          }
+        />
+        <Route
+          path="/courses/:courseId/testimonial"
           element={
             <div className="wrapper ">
               <Header
@@ -144,7 +160,7 @@ function App() {
               />
               <MainBlock ind={1} noMargin={true}>
                 <OrderFormBlockDecorator />
-                <OrderForm ind={1} />
+                <TestimonialForm ind={1} />
               </MainBlock>
               <Footer />
             </div>
