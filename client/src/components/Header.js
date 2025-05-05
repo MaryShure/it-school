@@ -23,7 +23,7 @@ export default function Header(props) {
           <Link to="/">
             <img
               className="header__logo"
-              src={process.env.PUBLIC_URL + "logo_try.png"}
+              src={`${process.env.PUBLIC_URL}/logo_try.png`}
               alt="Логотип сайта"
             />
           </Link>

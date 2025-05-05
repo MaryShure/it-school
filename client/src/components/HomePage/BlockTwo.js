@@ -56,7 +56,7 @@ function BlockTwo(props) {
           />
         ))}
       </div>
-      <Button text="все курсы" link="/courses" />
+      <Button text="все курсы" link="/curses" />
     </div>
   );
 }

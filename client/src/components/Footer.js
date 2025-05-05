@@ -17,7 +17,7 @@ export default function Footer() {
         <Link onClick={handleFooterLinkClick} to="/">
           <img
             className="header__logo"
-            src={process.env.PUBLIC_URL + "logo_try_white.png"}
+            src={`${process.env.PUBLIC_URL}/logo_try_white.png`}
             alt="Логотип сайта"
           />
         </Link>

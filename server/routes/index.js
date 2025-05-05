@@ -251,7 +251,7 @@ router.get("/courses", async (req, res) => {
       ],
       order: [["created_at", "DESC"]],
       attributes: {
-        exclude: ["updatedAt"], // Исключаем поле, которого нет в таблице
+        exclude: ["updatedAt"],
       },
     });
 

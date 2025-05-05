@@ -80,7 +80,7 @@ export default function FirstBlock_Curses(props) {
         }))
       );
 
-      setCookie("searchQuery", searchQuery, { path: "/" });
+      setCookie("searchQuery", searchQuery, { path: "/", maxAge: 3600 });
       setShowResults(true);
 
       // Плавная прокрутка к результатам

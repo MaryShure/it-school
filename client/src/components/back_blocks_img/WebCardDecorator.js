@@ -3,7 +3,7 @@ export default function WebCardDecorator() {
     <div className="bottom_img">
       <div className="mainblock__image _ibg">
         <img
-          src={process.env.PUBLIC_URL + "/back_img/image_web_curse.png"}
+          src={`${process.env.PUBLIC_URL}/back_img/image_web_curse.png`}
           alt="Course background"
         />
       </div>
