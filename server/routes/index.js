@@ -552,7 +552,6 @@ router.post("/testimonials", async (req, res) => {
   }
 });
 
-// GET /api/testimonials/approved - Получение одобренных отзывов
 router.get("/testimonials/approved", async (req, res) => {
   try {
     const testimonials = await Testimonial.findAll({
@@ -560,37 +559,45 @@ router.get("/testimonials/approved", async (req, res) => {
       include: [
         {
           model: Application,
+          as: "application",
           attributes: ["name", "surname"],
+          required: false, // Разрешаем null, если application не найден
         },
         {
           model: Course,
+          as: "course",
           attributes: ["title"],
+          required: false, // Разрешаем null, если course не найден
         },
       ],
       order: [["created_at", "DESC"]],
-      limit: 10,
     });
+
+    const formattedTestimonials = testimonials.map((t) => ({
+      id: t.id,
+      comment: t.comment,
+      rating: t.rating,
+      created_at: t.created_at,
+      user: {
+        name: t.application?.name || "Аноним",
+        surname: t.application?.surname || "",
+      },
+      course: {
+        title: t.course?.title || "Неизвестный курс",
+      },
+    }));
 
     res.json({
       success: true,
-      data: testimonials.map((t) => ({
-        id: t.id,
-        comment: t.comment,
-        rating: t.rating,
-        created_at: t.created_at,
-        user: {
-          name: t.application.name,
-          surname: t.application.surname,
-        },
-        course: {
-          title: t.course.title,
-        },
-      })),
+      data: formattedTestimonials,
     });
   } catch (error) {
+    console.error("Ошибка при получении отзывов:", error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: "Внутренняя ошибка сервера",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 });

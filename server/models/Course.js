@@ -55,4 +55,11 @@ const Course = sequelize.define(
   }
 );
 
+Course.associate = (models) => {
+  Course.hasMany(models.Testimonial, {
+    foreignKey: "course_id",
+    as: "testimonials",
+  });
+};
+
 export default Course;

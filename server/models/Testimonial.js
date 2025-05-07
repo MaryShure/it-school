@@ -52,4 +52,16 @@ const Testimonial = sequelize.define(
   }
 );
 
+// Добавляем ассоциации
+Testimonial.associate = (models) => {
+  Testimonial.belongsTo(models.Application, {
+    foreignKey: "application_id",
+    as: "application",
+  });
+  Testimonial.belongsTo(models.Course, {
+    foreignKey: "course_id",
+    as: "course",
+  });
+};
+
 export default Testimonial;

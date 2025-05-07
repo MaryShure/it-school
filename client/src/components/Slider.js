@@ -1,29 +1,33 @@
 import "../main.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Slider() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const comments = [
-    {
-      image: "comment3.jpg",
-      name: "Андрей",
-      profession: "Backend-разработка на Node.js",
-      comment: "После курсов здесь я разрабатываю на Node как боженька",
-    },
-    {
-      image: "comment1.jpg",
-      name: "Марина",
-      profession: "JavaScript для начинающих",
-      comment: "Получила крайне положительный опыт, очень советую данные курсы",
-    },
-    {
-      image: "comment2.jpg",
-      name: "Костя",
-      profession: "Адаптивная верстка и Flexbox",
-      comment: "Много практики, реальных примеров и задач",
-    },
-  ];
+  // Загрузка комментариев из БД
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/testimonials/approved"
+        );
+        if (!response.ok) {
+          throw new Error("Не удалось загрузить комментарии");
+        }
+        const data = await response.json();
+        setComments(data.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchComments();
+  }, []);
 
   const handlePrev = () => {
     setCurrentSlide((prev) => (prev === 0 ? comments.length - 1 : prev - 1));
@@ -32,6 +36,11 @@ export default function Slider() {
   const handleNext = () => {
     setCurrentSlide((prev) => (prev === comments.length - 1 ? 0 : prev + 1));
   };
+
+  if (loading) return <div className="loading">Загрузка комментариев...</div>;
+  if (error) return <div className="error">Ошибка: {error}</div>;
+  if (comments.length === 0)
+    return <div className="no-comments">Пока нет комментариев</div>;
 
   return (
     <div className="comment_container _container">
@@ -74,17 +83,14 @@ export default function Slider() {
       >
         <div className="comment">
           <div className="user_info" style={{ marginBottom: "16px" }}>
-            <div className="user_img">
-              <img
-                src={comments[currentSlide].image}
-                alt={comments[currentSlide].name}
-                style={{ width: "100%", height: "100%", borderRadius: "50%" }}
-              />
-            </div>
+            {/* Убрали блок с изображением */}
             <div>
-              <p className="user_name">{comments[currentSlide].name}</p>
+              <p className="user_name">
+                {comments[currentSlide].user?.surname}{" "}
+                {comments[currentSlide].user?.name}
+              </p>
               <p className="user_profession">
-                {comments[currentSlide].profession}
+                {comments[currentSlide].course?.title}
               </p>
             </div>
           </div>
@@ -113,7 +119,7 @@ export default function Slider() {
             justifyContent: "center",
           }}
         >
-          &#9654; {/* Стрелочка вправо */}
+          &#9654;
         </span>
       </div>
     </div>

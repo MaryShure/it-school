@@ -17,4 +17,11 @@ const Application = sequelize.define(
   }
 );
 
+Application.associate = (models) => {
+  Application.hasMany(models.Testimonial, {
+    foreignKey: "application_id",
+    as: "testimonials",
+  });
+};
+
 export default Application;
