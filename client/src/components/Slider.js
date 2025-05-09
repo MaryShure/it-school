@@ -79,22 +79,60 @@ export default function Slider() {
           justifyContent: "center",
           alignItems: "center",
           width: "100%",
+          height: window.innerWidth <= 500 ? "300px" : "482px", // Разная высота для мобильных и десктопа
         }}
       >
-        <div className="comment">
+        <div
+          className="comment"
+          style={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
           <div className="user_info" style={{ marginBottom: "16px" }}>
-            {/* Убрали блок с изображением */}
-            <div>
-              <p className="user_name">
+            <div style={{ width: "100%" }}>
+              <p
+                className="user_name"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                  margin: "0 0 8px 0",
+                }}
+              >
                 {comments[currentSlide].user?.surname}{" "}
                 {comments[currentSlide].user?.name}
               </p>
-              <p className="user_profession">
+              <p
+                className="user_profession"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                  margin: 0,
+                }}
+              >
                 {comments[currentSlide].course?.title}
               </p>
             </div>
           </div>
-          <div className="comment_bubble">{comments[currentSlide].comment}</div>
+          <div
+            className="comment_bubble"
+            style={{
+              flex: 1,
+              display: "-webkit-box",
+              WebkitLineClamp: 6, // Ограничение количества строк
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {comments[currentSlide].comment}
+          </div>
         </div>
       </div>
 

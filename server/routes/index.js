@@ -1,6 +1,6 @@
 import express from "express";
 import Application from "../models/Application.js";
-import { Course, Instructor, Category } from "../models/index.js";
+import { Course, Instructor, Category, Publication } from "../models/index.js";
 import Testimonial from "../models/Testimonial.js";
 import multer from "multer";
 import { fileURLToPath } from "url";
@@ -650,6 +650,243 @@ router.patch("/admin/testimonials/:id", async (req, res) => {
       res.status(404).json({
         success: false,
         error: "Отзыв не найден",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// GET /api/testimonials/all - Получение всех отзывов
+router.get("/testimonials/all", async (req, res) => {
+  try {
+    const testimonials = await Testimonial.findAll({
+      include: [
+        {
+          model: Course,
+          as: "course",
+          attributes: ["title"],
+        },
+        {
+          model: Application,
+          as: "application",
+          attributes: ["name", "surname"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    res.json({
+      success: true,
+      data: testimonials,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Настройка хранилища для загружаемых файлов (публикации)
+const publicationsStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, join(__dirname, "../public/uploads/publications"));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + extname(file.originalname));
+  },
+});
+
+const uploadPublication = multer({ storage: publicationsStorage });
+
+// GET /api/publications - Получение всех публикаций
+router.get("/publications", async (req, res) => {
+  try {
+    console.log("Attempting to fetch publications...");
+    const publications = await Publication.findAll({
+      order: [["created_at", "DESC"]],
+    });
+
+    console.log("Successfully fetched publications:", publications.length);
+    res.json({
+      success: true,
+      data: publications,
+    });
+  } catch (error) {
+    console.error("Error fetching publications:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+});
+
+// POST /api/publications - Создание публикации
+// POST /api/publications
+router.post(
+  "/publications",
+  uploadPublication.single("cover_image"),
+  async (req, res) => {
+    try {
+      const { title, type, excerpt, content, event_date, is_published } =
+        req.body;
+
+      // Валидация типа
+      const validTypes = ["news", "event", "featured"];
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({
+          success: false,
+          error: `Недопустимый тип публикации. Допустимые значения: ${validTypes.join(
+            ", "
+          )}`,
+        });
+      }
+
+      const publicationData = {
+        title,
+        type,
+        excerpt,
+        content,
+        is_published: is_published === "true",
+        published_at: is_published === "true" ? new Date() : null,
+      };
+
+      // Добавляем дату только для мероприятий
+      if (type === "event") {
+        publicationData.event_date = event_date;
+      }
+
+      if (req.file) {
+        publicationData.cover_url = `/uploads/publications/${req.file.filename}`;
+      }
+
+      const publication = await Publication.create(publicationData);
+      res.status(201).json({
+        success: true,
+        data: publication,
+      });
+    } catch (error) {
+      console.error("Error creating publication:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      });
+    }
+  }
+);
+
+// PUT /api/publications/:id - Обновление публикации
+router.put(
+  "/publications/:id",
+  uploadPublication.single("cover_image"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { title, type, excerpt, content, event_date, is_published } =
+        req.body;
+
+      const updateData = {
+        title,
+        type,
+        excerpt,
+        content,
+        event_date,
+        is_published: is_published === "true",
+      };
+
+      if (req.file) {
+        updateData.cover_url = `/uploads/publications/${req.file.filename}`;
+      }
+
+      if (is_published === "true") {
+        updateData.published_at = new Date();
+      }
+
+      const [updated] = await Publication.update(updateData, {
+        where: { id },
+      });
+
+      if (updated) {
+        const updatedPublication = await Publication.findByPk(id);
+        res.json({
+          success: true,
+          data: updatedPublication,
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          error: "Публикация не найдена",
+        });
+      }
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+);
+
+// PATCH /api/publications/:id - Частичное обновление (для публикации/снятия)
+router.patch("/publications/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_published } = req.body;
+
+    const [updated] = await Publication.update(
+      {
+        is_published,
+        published_at: is_published ? new Date() : null,
+      },
+      {
+        where: { id },
+      }
+    );
+
+    if (updated) {
+      res.json({
+        success: true,
+        message: "Публикация обновлена",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: "Публикация не найдена",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// DELETE /api/publications/:id - Удаление публикации
+router.delete("/publications/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Publication.destroy({
+      where: { id },
+    });
+
+    if (deleted) {
+      res.json({
+        success: true,
+        message: "Публикация удалена",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: "Публикация не найдена",
       });
     }
   } catch (error) {
