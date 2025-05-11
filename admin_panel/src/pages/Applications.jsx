@@ -25,18 +25,22 @@ const Applications = () => {
 
   // Функция для загрузки заявок
   const fetchApplications = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/applications');
-      setApplications(response.data);
-      setError(null);
-    } catch (err) {
-      setError(err.message);
-      console.error('Ошибка при загрузке заявок:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    const response = await axios.get('http://localhost:5000/api/applications', {
+      params: {
+        has_testimonial: false // Добавляем параметр фильтрации
+      }
+    });
+    setApplications(response.data);
+    setError(null);
+  } catch (err) {
+    setError(err.message);
+    console.error('Ошибка при загрузке заявок:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Функция для удаления заявки
   const handleDelete = async (id) => {

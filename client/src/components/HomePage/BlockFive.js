@@ -1,8 +1,60 @@
 import "../../main.css";
 import Button from "../Button";
+import { useEffect, useState } from "react";
 
 export default function BlockFive(props) {
   console.log(props);
+
+  const [publications, setPublications] = useState({
+    news: [],
+    events: [],
+    featured: null,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPublications = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/publications/published"
+        );
+        if (!response.ok) throw new Error("Ошибка загрузки публикаций");
+        const data = await response.json();
+
+        // Сортируем новости по дате публикации (новые сначала)
+        const sortedNews = data.data
+          .filter((p) => p.type === "news")
+          .sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+
+        // Берем только 2 последние новости
+        const latestNews = sortedNews.slice(0, 2);
+
+        // Находим последний featured выпуск
+        const featured = data.data
+          .filter((p) => p.type === "featured")
+          .sort(
+            (a, b) => new Date(b.published_at) - new Date(a.published_at)
+          )[0];
+
+        setPublications({
+          news: latestNews, // Используем только 2 последние новости
+          events: data.data.filter((p) => p.type === "event"),
+          featured: featured || null,
+        });
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPublications();
+  }, []);
+
+  if (loading) return <div className="loading">Загрузка...</div>;
+  if (error) return <div className="error">Ошибка: {error}</div>;
+
   return (
     <>
       <div className="card_style blockthree_add">
@@ -23,20 +75,13 @@ export default function BlockFive(props) {
         />
       </div>
       <div className="card_style news">
-        <div className="main_news">
-          <h2>Новый курс: Введение в искусственный интеллект</h2>
-          <p>
-            Изучите основы искусственного интеллекта с нашим новым курсом! Вы
-            научитесь создавать нейронные сети, работать с Python и применять ИИ
-            в реальных проектах. Курс подходит как для начинающих, так и для
-            опытных программистов.
-          </p>
-          <p>12 октября 2024</p>
-        </div>
-        <div className="main_news">
-          <p>Бесплатный вебинар: Как выбрать первый язык программирования</p>
-          <p>10 октября 2024</p>
-        </div>
+        {publications.news.map((item, index) => (
+          <div className="main_news" key={`news-${index}`}>
+            <h2>{item.title}</h2>
+            <p>{item.excerpt || item.content.substring(0, 150)}...</p>
+            <p>{new Date(item.published_at).toLocaleDateString()}</p>
+          </div>
+        ))}
         <Button text="перейти в блог" link="/blog" />
       </div>
     </>

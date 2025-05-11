@@ -11,6 +11,10 @@ const Application = sequelize.define(
     telephone: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false },
     course_name: { type: DataTypes.STRING, allowNull: false },
+    has_testimonial: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     timestamps: true,

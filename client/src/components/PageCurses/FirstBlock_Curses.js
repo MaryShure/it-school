@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCookies } from "react-cookie";
 import Button from "../Button";
 import CardMenu from "./CardMenu";
 import "../../main.css";
@@ -14,16 +13,10 @@ export default function FirstBlock_Curses(props) {
   });
   const [error, setError] = useState(null);
   const [searchInput, setSearchInput] = useState("");
-  const [cookies, setCookie] = useCookies(["searchQuery"]);
   const [showResults, setShowResults] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (cookies.searchQuery) {
-      setSearchInput(cookies.searchQuery);
-      handleSearch(cookies.searchQuery, false);
-    }
-
     const fetchPopularCourses = async () => {
       try {
         const response = await fetch("http://localhost:5000/api/top-courses");
@@ -80,7 +73,6 @@ export default function FirstBlock_Curses(props) {
         }))
       );
 
-      setCookie("searchQuery", searchQuery, { path: "/", maxAge: 3600 });
       setShowResults(true);
 
       // Плавная прокрутка к результатам
@@ -102,7 +94,6 @@ export default function FirstBlock_Curses(props) {
     setSearchInput("");
     setSearchResults([]);
     setShowResults(false);
-    setCookie("searchQuery", "", { path: "/", expires: new Date(0) });
   };
 
   const handleKeyPress = (e) => {

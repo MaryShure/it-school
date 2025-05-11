@@ -4,6 +4,7 @@ import Category from "./Category.js";
 import Application from "./Application.js";
 import Testimonial from "./Testimonial.js";
 import Publication from "./Publication.js";
+import AboutPage from "./AboutPage.js";
 
 // Связь Курс -> Преподаватель
 Course.belongsTo(Instructor, {
@@ -49,4 +50,12 @@ Course.hasMany(Testimonial, {
   as: "courseTestimonials", // уникальный алиас для hasMany
 });
 
-export { Course, Instructor, Category, Application, Testimonial, Publication };
+export {
+  Course,
+  Instructor,
+  Category,
+  Application,
+  Testimonial,
+  Publication,
+  AboutPage,
+};

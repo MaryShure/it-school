@@ -33,10 +33,18 @@ router.post("/apply", async (req, res) => {
   }
 });
 
-// Получение всех заявок
+// GET /api/applications - Получение всех заявок
 router.get("/applications", async (req, res) => {
   try {
+    const where = {};
+
+    // Добавляем фильтр по наличию отзыва, если передан параметр
+    if (req.query.has_testimonial !== undefined) {
+      where.has_testimonial = req.query.has_testimonial === "true";
+    }
+
     const applications = await Application.findAll({
+      where,
       order: [["createdAt", "DESC"]],
     });
     res.json(applications);
@@ -526,8 +534,10 @@ router.post("/testimonials", async (req, res) => {
       course_id,
       comment,
       rating: parseInt(rating),
-      is_approved: false,
+      is_approved: null,
     });
+
+    await application.update({ has_testimonial: true });
 
     res.status(201).json({
       success: true,
@@ -691,6 +701,32 @@ router.get("/testimonials/all", async (req, res) => {
   }
 });
 
+// DELETE /api/testimonials/:id - Удаление отзыва
+router.delete("/testimonials/:id", async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findByPk(req.params.id);
+    if (!testimonial) {
+      return res.status(404).json({
+        success: false,
+        error: "Отзыв не найден",
+      });
+    }
+
+    // Удаляем отзыв
+    await testimonial.destroy();
+
+    res.json({
+      success: true,
+      message: "Отзыв успешно удален",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 // Настройка хранилища для загружаемых файлов (публикации)
 const publicationsStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -728,7 +764,6 @@ router.get("/publications", async (req, res) => {
 });
 
 // POST /api/publications - Создание публикации
-// POST /api/publications
 router.post(
   "/publications",
   uploadPublication.single("cover_image"),
@@ -890,6 +925,111 @@ router.delete("/publications/:id", async (req, res) => {
       });
     }
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// GET /api/publications/published - Получение только опубликованных публикаций
+router.get("/publications/published", async (req, res) => {
+  try {
+    const publications = await Publication.findAll({
+      where: {
+        is_published: true,
+      },
+      order: [
+        ["type", "ASC"],
+        ["published_at", "DESC"],
+      ],
+    });
+
+    res.json({
+      success: true,
+      data: publications,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// Добавьте в начало файла с другими импортами
+import AboutPage from "../models/AboutPage.js";
+
+// Создаем хранилище для изображений страницы "О компании"
+const aboutStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, join(__dirname, "../public/uploads/about"));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + extname(file.originalname));
+  },
+});
+
+const uploadAbout = multer({ storage: aboutStorage });
+
+// GET /api/about?all=true - Получение всех секций (включая неактивные)
+router.get("/about", async (req, res) => {
+  try {
+    const where = req.query.all ? {} : { is_active: true };
+    const sections = await AboutPage.findAll({
+      where,
+      order: [["order_num", "ASC"]],
+    });
+    res.json({
+      success: true,
+      data: sections,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+// POST /api/about - Обновление секции
+router.post("/about", uploadAbout.single("image"), async (req, res) => {
+  try {
+    const { id, section, title, content, order_num, is_active } = req.body;
+
+    // Явное преобразование is_active в boolean
+    const isActive = is_active === "true" || is_active === true;
+
+    const aboutData = {
+      section,
+      title,
+      content,
+      order_num: parseInt(order_num) || 0,
+      is_active: isActive, // Гарантированно boolean
+    };
+
+    if (req.file) {
+      aboutData.image_url = `/uploads/about/${req.file.filename}`;
+    }
+
+    let result;
+    if (id) {
+      // Только обновление, без удаления
+      result = await AboutPage.update(aboutData, {
+        where: { id },
+        returning: true,
+      });
+    } else {
+      result = await AboutPage.create(aboutData);
+    }
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error saving about section:", error);
     res.status(500).json({
       success: false,
       error: error.message,
