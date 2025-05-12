@@ -6,6 +6,10 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import { Op } from "sequelize";
 import { dirname, join, extname } from "path";
+import Subscriber from "../models/Subscriber.js";
+import Newsletter from "../models/Newsletter.js";
+import AboutPage from "../models/AboutPage.js";
+import nodemailer from "nodemailer";
 
 const router = express.Router();
 
@@ -957,9 +961,6 @@ router.get("/publications/published", async (req, res) => {
   }
 });
 
-// Добавьте в начало файла с другими импортами
-import AboutPage from "../models/AboutPage.js";
-
 // Создаем хранилище для изображений страницы "О компании"
 const aboutStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -1034,6 +1035,162 @@ router.post("/about", uploadAbout.single("image"), async (req, res) => {
       success: false,
       error: error.message,
     });
+  }
+});
+
+// Подписка на рассылку
+router.post("/newsletter/subscribe", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const existing = await Subscriber.findOne({ where: { email } });
+    if (existing) {
+      return res.json({ success: true, message: "Email уже подписан" });
+    }
+
+    await Subscriber.create({ email });
+    res.json({ success: true, message: "Успешно подписались на рассылку" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Отправка рассылки
+router.post("/newsletter/send", async (req, res) => {
+  console.log("Запрос на отправку рассылки получен");
+
+  try {
+    // 1. Валидация входных данных
+    if (!req.body.subject || !req.body.content) {
+      return res.status(400).json({
+        success: false,
+        error: "Не указаны тема или содержание письма",
+      });
+    }
+
+    // 2. Проверка переменных окружения
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error("Ошибка: Не настроены почтовые переменные окружения");
+      return res.status(500).json({
+        success: false,
+        error: "Ошибка серверной конфигурации",
+      });
+    }
+
+    // 3. Создаем запись о рассылке
+    const newsletter = await Newsletter.create({
+      subject: req.body.subject,
+      content: req.body.content,
+    });
+
+    // 4. Получаем подписчиков
+    const subscribers = await Subscriber.findAll({
+      where: { is_active: true },
+      attributes: ["email"],
+      raw: true,
+    });
+
+    console.log(`Найдено подписчиков: ${subscribers.length}`);
+
+    if (subscribers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Нет активных подписчиков",
+      });
+    }
+
+    // 5. Настройка транспорта
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false, // Только для тестирования!
+      },
+    });
+
+    // 6. Проверка подключения SMTP
+    try {
+      await transporter.verify();
+      console.log("SMTP подключение успешно");
+    } catch (smtpError) {
+      console.error("Ошибка SMTP:", smtpError);
+      return res.status(500).json({
+        success: false,
+        error: "Ошибка почтового сервера",
+        details: smtpError.message,
+      });
+    }
+
+    // 7. Отправка писем
+    let sentCount = 0;
+    const failedEmails = [];
+
+    for (const subscriber of subscribers) {
+      try {
+        await transporter.sendMail({
+          from: `"Название Вашей Компании" <${process.env.EMAIL_USER}>`,
+          to: subscriber.email,
+          subject: req.body.subject,
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>${req.body.subject}</h2>
+              <div>${req.body.content}</div>
+              <p style="margin-top: 30px; font-size: 12px; color: #666;">
+                <a href="http://ваш-сайт/unsubscribe?email=${subscriber.email}">Отписаться</a>
+              </p>
+            </div>
+          `,
+        });
+        console.log(`Успешно отправлено на: ${subscriber.email}`);
+        sentCount++;
+      } catch (error) {
+        console.error(`Ошибка для ${subscriber.email}:`, error.message);
+        failedEmails.push({
+          email: subscriber.email,
+          error: error.message,
+        });
+      }
+
+      // Пауза между отправками (1000ms = 1 секунда)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    // 8. Обновление статистики
+    await newsletter.update({
+      sent_at: new Date(),
+      recipients_count: sentCount,
+    });
+
+    // 9. Ответ
+    res.json({
+      success: true,
+      sentCount,
+      failedCount: failedEmails.length,
+      failedEmails,
+    });
+  } catch (error) {
+    console.error("Общая ошибка:", error);
+    res.status(500).json({
+      success: false,
+      error: "Внутренняя ошибка сервера",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// Получение списка рассылок
+router.get("/newsletter", async (req, res) => {
+  try {
+    const newsletters = await Newsletter.findAll({
+      order: [["sent_at", "DESC"]],
+    });
+    res.json({ success: true, data: newsletters });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

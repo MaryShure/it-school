@@ -5,6 +5,8 @@ import Application from "./Application.js";
 import Testimonial from "./Testimonial.js";
 import Publication from "./Publication.js";
 import AboutPage from "./AboutPage.js";
+import Subscriber from "./Subscriber.js";
+import Newsletter from "./Newsletter.js";
 
 // Связь Курс -> Преподаватель
 Course.belongsTo(Instructor, {
@@ -58,4 +60,6 @@ export {
   Testimonial,
   Publication,
   AboutPage,
+  Subscriber,
+  Newsletter,
 };

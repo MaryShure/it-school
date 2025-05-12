@@ -1,6 +1,7 @@
 import "../main.css";
 import Button from "./Button";
-import React from "react";
+import { useState } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
 
 export default function Footer() {
@@ -9,6 +10,22 @@ export default function Footer() {
       top: 0,
       behavior: "smooth",
     });
+  };
+
+  const [email, setEmail] = useState("");
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
+
+  const handleSubscribe = async () => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/newsletter/subscribe",
+        { email }
+      );
+      setSubscriptionStatus(response.data.message);
+      setEmail("");
+    } catch (error) {
+      setSubscriptionStatus(error.response?.data?.error || "Ошибка подписки");
+    }
   };
 
   return (
@@ -64,13 +81,16 @@ export default function Footer() {
           Подпишитесь на нашу рассылку и получайте новости о новых курсах и
           акциях
         </p>
-        <div className="footer_container ">
+        <div className="footer_container text-black">
           <input
             id="footer_input_email"
             className="footer_input"
-            placeholder="email@.email"
-          ></input>
-          <Button text="подписаться" />
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+          />
+          <Button text="подписаться" onClick={handleSubscribe} />
         </div>
       </div>
       <div className="footer_arrow_up" onClick={handleFooterLinkClick}>

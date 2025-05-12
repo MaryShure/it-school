@@ -5,6 +5,7 @@ import CoursesPage from "./pages/CoursesPage";
 import TestimonialsPage from "./pages/TestimonialsPage";
 import PublicationsPage from "./pages/PublicationsPage";
 import AboutPageAdmin from "./pages/AboutPageAdmin";
+import NewsletterPage from "./pages/NewsletterPage";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
@@ -19,6 +20,7 @@ function App() {
             <Route path="/testimonials" element={<TestimonialsPage />} />
             <Route path="/publications" element={<PublicationsPage />} />
             <Route path="/about-admin" element={<AboutPageAdmin />} />
+            <Route path="/letters" element={<NewsletterPage />} />
             <Route path="/" element={<Applications />} />
           </Routes>
         </Layout>

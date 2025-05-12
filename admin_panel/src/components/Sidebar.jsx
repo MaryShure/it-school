@@ -5,6 +5,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import ArticleIcon from '@mui/icons-material/Article';
 import InfoIcon from '@mui/icons-material/Info';
+import EmailIcon from '@mui/icons-material/Email';
 
 const Sidebar = () => {
   return (
@@ -41,11 +42,17 @@ const Sidebar = () => {
              </ListItemIcon>
            <ListItemText primary="Публикации" />
            </ListItemButton>
-          </ListItem>
+        </ListItem>
         <ListItem disablePadding>
         <ListItemButton component={Link} to="/about-admin">
           <ListItemIcon><InfoIcon /></ListItemIcon>
           <ListItemText primary="О компании" />
+          </ListItemButton>
+        </ListItem>
+        <ListItem disablePadding>
+        <ListItemButton component={Link} to="/letters">
+          <ListItemIcon><EmailIcon /></ListItemIcon>
+          <ListItemText primary="Управление рассылкой" />
           </ListItemButton>
         </ListItem>
       </List>
