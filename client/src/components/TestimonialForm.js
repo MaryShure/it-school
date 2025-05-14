@@ -7,7 +7,6 @@ export default function TestimonialForm() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
-  // Все хуки должны быть вызваны до любых условных операторов
   const [formData, setFormData] = useState({
     surname: "",
     name: "",
@@ -25,6 +24,7 @@ export default function TestimonialForm() {
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   if (!courseId) {
     return <div className="error">Ошибка: курс не определен</div>;
@@ -81,8 +81,26 @@ export default function TestimonialForm() {
         throw new Error(data.error || "Ошибка при отправке отзыва");
       }
 
-      alert("Спасибо за ваш отзыв! Он будет опубликован после проверки.");
-      // Перенаправление на страницу курса или другую страницу
+      // Очищаем форму
+      setFormData({
+        surname: "",
+        name: "",
+        patronym: "",
+        telephone: "",
+        email: "",
+        rating: 0,
+        comment: "",
+      });
+      setDay("");
+      setMonth("");
+      setYear("");
+      setIsChecked(false);
+
+      // Показываем сообщение об успехе
+      setIsSubmitted(true);
+
+      // Скрываем сообщение через 5 секунд
+      setTimeout(() => setIsSubmitted(false), 5000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -109,7 +127,16 @@ export default function TestimonialForm() {
       </div>
 
       <div className="card_style orderform_block mainblock__buttons _container">
+        {isSubmitted && (
+          <div className="success-message pb-5">
+            Спасибо за ваш отзыв! Он будет опубликован после проверки.
+          </div>
+        )}
+
+        {error && <div className="error-message  pb-5">{error}</div>}
+
         <div className="gridfields">
+          {/* Поля формы остаются без изменений */}
           <div className="order_input">
             <p>Фамилия:</p>
             <input
@@ -234,7 +261,7 @@ export default function TestimonialForm() {
           </div>
 
           <div className="comment-input">
-            <p>Ваш отзыв:</p>
+            <p className="pb-2">Ваш отзыв:</p>
             <textarea
               id="comment"
               className="order_field"
@@ -242,7 +269,7 @@ export default function TestimonialForm() {
               value={formData.comment}
               onChange={handleChange}
               required
-              minLength="20"
+              minLength="0"
               rows="5"
             />
           </div>

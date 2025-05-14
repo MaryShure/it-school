@@ -8,6 +8,7 @@ export default function OrderForm() {
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
     surname: "",
@@ -70,17 +71,37 @@ export default function OrderForm() {
         alert("Пожалуйста, введите корректный номер телефона");
         return;
       }
+
       const response = await fetch("http://localhost:5000/api/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           birth_date,
-          course_name: courseId, // Используем ID курса
+          course_name: courseId,
         }),
       });
+
       const data = await response.json();
-      alert("Заявка отправлена!");
+
+      // Очищаем форму
+      setFormData({
+        surname: "",
+        name: "",
+        patronym: "",
+        telephone: "",
+        email: "",
+      });
+      setDay("");
+      setMonth("");
+      setYear("");
+      setIsChecked(false);
+
+      // Показываем сообщение об успехе
+      setIsSubmitted(true);
+
+      // Скрываем сообщение через 5 секунд
+      setTimeout(() => setIsSubmitted(false), 5000);
     } catch (error) {
       alert("Ошибка: " + error.message);
     }
@@ -131,6 +152,11 @@ export default function OrderForm() {
         </div>
       </div>
       <div className="card_style orderform_block mainblock__buttons _container">
+        {isSubmitted && (
+          <div className="success-message pb-5">
+            Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.
+          </div>
+        )}
         <div className="gridfields">
           <div className="order_input">
             <p>Фамилия:</p>
